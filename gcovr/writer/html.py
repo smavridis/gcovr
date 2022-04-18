@@ -226,6 +226,7 @@ class RootInfo:
         self.medium_threshold = options.html_medium_threshold
         self.high_threshold = options.html_high_threshold
         self.details = options.html_details
+        self.single_file = options.html_single_file
         self.relative_anchors = options.relative_anchors
 
         self.version = __version__
@@ -292,6 +293,12 @@ class RootInfo:
             if self.relative_anchors:
                 link_report = os.path.basename(link_report)
 
+        if self.single_file:
+            link_report = (
+                "#"
+                + hashlib.md5(os.path.basename(link_report).encode("utf-8")).hexdigest()
+            )
+
         self.files.append(
             dict(
                 directory=self.directory,
@@ -326,6 +333,13 @@ def print_html_report(covdata: CovData, output_file, options):
     data["COVERAGE_HIGH"] = high_threshold
 
     self_contained = options.html_self_contained
+    single_file = options.html_single_file
+
+    data["SINGLE_FILE"] = single_file
+
+    if single_file:
+        data["single_file_data"] = {}
+
     if self_contained is None:
         self_contained = not options.html_details
     if output_file == "-":
@@ -405,11 +419,19 @@ def print_html_report(covdata: CovData, output_file, options):
             output_suffix = ".html"
         functions_fname = f"{output_prefix}.functions{output_suffix}"
         data["FUNCTIONS_FNAME"] = os.path.basename(functions_fname)
+        if options.html_single_file:
+            data["FUNCTIONS_FNAME"] = (
+                "#" + hashlib.md5(data["FUNCTIONS_FNAME"].encode("utf-8")).hexdigest()
+            )
     html_string = templates().get_template("root_page.html").render(**data)
-    with open_text_for_writing(
-        output_file, encoding=options.html_encoding, errors="xmlcharrefreplace"
-    ) as fh:
-        fh.write(html_string + "\n")
+    if single_file:
+        hash_id = hashlib.md5(os.path.basename(output_file).encode("utf-8")).hexdigest()
+        data["single_file_data"][hash_id] = html_string
+    else:
+        with open_text_for_writing(
+            output_file, encoding=options.html_encoding, errors="xmlcharrefreplace"
+        ) as fh:
+            fh.write(html_string + "\n")
 
     # Return, if no details are requested
     if not options.html_details:
@@ -483,19 +505,38 @@ def print_html_report(covdata: CovData, output_file, options):
         os.chdir(currdir)
 
         html_string = templates().get_template("source_page.html").render(**data)
-        with open_text_for_writing(
-            cdata_sourcefile[f],
-            encoding=options.html_encoding,
-            errors="xmlcharrefreplace",
-        ) as fh:
-            fh.write(html_string + "\n")
+        if single_file:
+            hash_id = hashlib.md5(
+                os.path.basename(cdata_sourcefile[f]).encode("utf-8")
+            ).hexdigest()
+            data["single_file_data"][hash_id] = html_string
+        else:
+            with open_text_for_writing(
+                cdata_sourcefile[f],
+                encoding=options.html_encoding,
+                errors="xmlcharrefreplace",
+            ) as fh:
+                fh.write(html_string + "\n")
 
     data["all_functions"] = [all_functions[k] for k in sorted(all_functions)]
     html_string = templates().get_template("functions_page.html").render(**data)
-    with open_text_for_writing(
-        functions_fname, encoding=options.html_encoding, errors="xmlcharrefreplace"
-    ) as fh:
-        fh.write(html_string + "\n")
+    if single_file:
+        hash_id = hashlib.md5(
+            os.path.basename(functions_fname).encode("utf-8")
+        ).hexdigest()
+        data["single_file_data"][hash_id] = html_string
+    else:
+        with open_text_for_writing(
+            functions_fname, encoding=options.html_encoding, errors="xmlcharrefreplace"
+        ) as fh:
+            fh.write(html_string + "\n")
+
+    if single_file:
+        html_string = templates().get_template("single_file.html").render(**data)
+        with open_text_for_writing(
+            output_file, encoding=options.html_encoding, errors="xmlcharrefreplace"
+        ) as fh:
+            fh.write(html_string + "\n")
 
     return error_occurred
 

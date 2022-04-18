@@ -1,0 +1,30 @@
+{# -*- engine: jinja -*- #}
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset={{info.encoding}}"/>
+    <title>{{info.head}}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta http-equiv="refresh" content="url='#801b17ad2ffcdbdfecef0349622c1fe9'" />
+    {% if css_link is defined %}
+    <link rel="stylesheet" href="{{css_link}}">
+    {% else %}
+    <style type="text/css">
+      {{css | safe}}
+      .page{display: none}
+      .page:target{display: initial}
+    </style>
+    {% endif %}
+  </head>
+
+  <body>
+  {% for file in single_file_data %}
+    <div id="{{file}}" class="page">
+      {{single_file_data[file] | safe}}
+    </div>
+  {% endfor %}
+  <script>
+    document.location = document.location + "#" + document.querySelectorAll('.page')[0].id
+  </script>
+  </body>
+</html>

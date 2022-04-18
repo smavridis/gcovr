@@ -932,6 +932,17 @@ GCOVR_CONFIG_OPTIONS = [
         const_negate=False,
     ),
     GcovrConfigOption(
+        "html_single_file",
+        ["--html-single-file"],
+        group="output_options",
+        help=(
+            "Control whether all HTML report (details, sources and function info) is bundled in a single file. "
+        ),
+        action="store_const",
+        default=None,
+        const=True,
+    ),
+    GcovrConfigOption(
         "print_summary",
         ["-s", "--print-summary"],
         group="output_options",
